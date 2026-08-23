@@ -5,57 +5,77 @@ import com.portfolio.orderservice.exception.OrderNotFoundException;
 import com.portfolio.orderservice.model.Order;
 import com.portfolio.orderservice.model.OrderItem;
 import com.portfolio.orderservice.model.OrderStatus;
+import com.portfolio.orderservice.persistence.entity.OrderEntity;
+import com.portfolio.orderservice.persistence.entity.OrderItemEntity;
+import com.portfolio.orderservice.persistence.repository.OrderRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class OrderService {
 
-    private final Map<UUID, Order> orders = new ConcurrentHashMap<>();
+    private final OrderRepository orderRepository;
 
+    public OrderService(OrderRepository orderRepository) {
+        this.orderRepository = orderRepository;
+    }
+
+    @Transactional
     public Order createOrder(CreateOrderRequest request) {
-
-        List<OrderItem> items = request.items()
-                .stream()
-                .map(item -> new OrderItem(
-                        item.productId(),
-                        item.quantity(),
-                        item.unitPrice()
-                ))
-                .toList();
-
-        BigDecimal totalAmount = items.stream()
+        BigDecimal totalAmount = request.items().stream()
                 .map(item -> item.unitPrice()
                         .multiply(BigDecimal.valueOf(item.quantity())))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        Order order = new Order(
+        OrderEntity entity = new OrderEntity(
                 UUID.randomUUID(),
                 request.customerId(),
                 OrderStatus.CREATED,
-                items,
                 totalAmount,
                 Instant.now()
         );
 
-        orders.put(order.id(), order);
+        request.items().forEach(item ->
+                entity.addItem(new OrderItemEntity(
+                        item.productId(),
+                        item.quantity(),
+                        item.unitPrice()
+                ))
+        );
 
-        return order;
+        OrderEntity savedEntity = orderRepository.save(entity);
+        return toDomain(savedEntity);
     }
 
+    @Transactional(readOnly = true)
     public Order getOrder(UUID id) {
-        Order order = orders.get(id);
+        OrderEntity entity = orderRepository.findById(id)
+                .orElseThrow(() -> new OrderNotFoundException(id));
 
-        if (order == null) {
-            throw new OrderNotFoundException(id);
-        }
+        return toDomain(entity);
+    }
 
-        return order;
+    private Order toDomain(OrderEntity entity) {
+        List<OrderItem> items = entity.getItems().stream()
+                .map(item -> new OrderItem(
+                        item.getProductId(),
+                        item.getQuantity(),
+                        item.getUnitPrice()
+                ))
+                .toList();
+
+        return new Order(
+                entity.getId(),
+                entity.getCustomerId(),
+                entity.getStatus(),
+                items,
+                entity.getTotalAmount(),
+                entity.getCreatedAt()
+        );
     }
 }
