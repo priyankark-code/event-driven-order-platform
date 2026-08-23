@@ -1,4 +1,4 @@
-package com.portfolio.order_service;
+package com.portfolio.orderservice;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
