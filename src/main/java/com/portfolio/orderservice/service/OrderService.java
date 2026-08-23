@@ -10,6 +10,11 @@ import com.portfolio.orderservice.persistence.entity.OrderItemEntity;
 import com.portfolio.orderservice.persistence.repository.OrderRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.portfolio.orderservice.dto.OrderSummaryResponse;
+import com.portfolio.orderservice.dto.PagedResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -58,6 +63,36 @@ public class OrderService {
                 .orElseThrow(() -> new OrderNotFoundException(id));
 
         return toDomain(entity);
+    }
+
+    @Transactional(readOnly = true)
+    public PagedResponse<OrderSummaryResponse> getOrders(
+            int page,
+            int size
+    ) {
+        PageRequest pageRequest = PageRequest.of(
+                page,
+                size,
+                Sort.by(Sort.Direction.DESC, "createdAt")
+        );
+
+        Page<OrderSummaryResponse> result = orderRepository
+                .findAll(pageRequest)
+                .map(entity -> new OrderSummaryResponse(
+                        entity.getId(),
+                        entity.getCustomerId(),
+                        entity.getStatus(),
+                        entity.getTotalAmount(),
+                        entity.getCreatedAt()
+                ));
+
+        return new PagedResponse<>(
+                result.getContent(),
+                result.getNumber(),
+                result.getSize(),
+                result.getTotalElements(),
+                result.getTotalPages()
+        );
     }
 
     private Order toDomain(OrderEntity entity) {
