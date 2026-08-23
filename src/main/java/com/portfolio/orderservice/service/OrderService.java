@@ -113,4 +113,14 @@ public class OrderService {
                 entity.getCreatedAt()
         );
     }
+
+    @Transactional
+    public Order cancelOrder(UUID id) {
+        OrderEntity entity = orderRepository.findById(id)
+                .orElseThrow(() -> new OrderNotFoundException(id));
+
+        entity.cancel();
+
+        return toDomain(entity);
+    }
 }

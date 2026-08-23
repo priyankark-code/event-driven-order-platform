@@ -1,5 +1,6 @@
 package com.portfolio.orderservice.persistence.entity;
 
+import com.portfolio.orderservice.exception.InvalidOrderStateException;
 import com.portfolio.orderservice.model.OrderStatus;
 import jakarta.persistence.*;
 
@@ -28,6 +29,10 @@ public class OrderEntity {
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
+
+    @Version
+    @Column(nullable = false)
+    private long version;
 
     @OneToMany(
             mappedBy = "order",
@@ -81,5 +86,13 @@ public class OrderEntity {
 
     public List<OrderItemEntity> getItems() {
         return List.copyOf(items);
+    }
+
+    public void cancel() {
+        if (status != OrderStatus.CREATED) {
+            throw new InvalidOrderStateException(id, status);
+        }
+
+        status = OrderStatus.CANCELLED;
     }
 }

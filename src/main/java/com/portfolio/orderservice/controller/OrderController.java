@@ -49,4 +49,9 @@ public class OrderController {
     ) {
         return ResponseEntity.ok(orderService.getOrders(page, size));
     }
+
+    @PostMapping("/{id}/cancel")
+    public ResponseEntity<Order> cancelOrder(@PathVariable UUID id) {
+        return ResponseEntity.ok(orderService.cancelOrder(id));
+    }
 }
