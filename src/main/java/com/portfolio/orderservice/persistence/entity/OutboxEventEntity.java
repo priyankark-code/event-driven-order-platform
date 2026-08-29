@@ -74,4 +74,10 @@ public class OutboxEventEntity {
     public Instant getPublishedAt() {
         return publishedAt;
     }
+
+    public void markPublished(Instant publishedAt) {
+        if (this.publishedAt == null) {
+            this.publishedAt = publishedAt;
+        }
+    }
 }

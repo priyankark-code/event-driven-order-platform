@@ -8,10 +8,13 @@ services:
       DB_URL: jdbc:postgresql://postgres:5432/order_db
       DB_USERNAME: order_user
       DB_PASSWORD: order_password
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
     ports:
       - "8080:8080"
     depends_on:
       postgres:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
     restart: unless-stopped
 
