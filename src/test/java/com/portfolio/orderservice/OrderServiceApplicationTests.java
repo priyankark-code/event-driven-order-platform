@@ -2,6 +2,7 @@ package com.portfolio.orderservice;
 
 import com.portfolio.orderservice.dto.CreateOrderRequest;
 import com.portfolio.orderservice.model.Order;
+import com.portfolio.orderservice.persistence.repository.OutboxEventRepository;
 import com.portfolio.orderservice.service.OrderService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,6 +28,9 @@ class OrderServiceApplicationTests {
 
 	@Autowired
 	private OrderService orderService;
+
+	@Autowired
+	private OutboxEventRepository outboxEventRepository;
 
 	@Test
 	void shouldPersistAndRetrieveOrder() {
@@ -54,5 +58,7 @@ class OrderServiceApplicationTests {
 		assertThat(retrieved.totalAmount())
 				.isEqualByComparingTo("119.97");
 		assertThat(retrieved.items()).hasSize(2);
+		assertThat(outboxEventRepository.countByPublishedAtIsNull())
+				.isEqualTo(1);
 	}
 }

@@ -8,6 +8,7 @@ import com.portfolio.orderservice.model.OrderStatus;
 import com.portfolio.orderservice.persistence.entity.OrderEntity;
 import com.portfolio.orderservice.persistence.entity.OrderItemEntity;
 import com.portfolio.orderservice.persistence.repository.OrderRepository;
+import com.portfolio.orderservice.persistence.repository.OutboxEventRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.portfolio.orderservice.dto.OrderSummaryResponse;
@@ -15,6 +16,11 @@ import com.portfolio.orderservice.dto.PagedResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import tools.jackson.databind.ObjectMapper;
+import com.portfolio.orderservice.event.OrderCreatedEvent;
+import com.portfolio.orderservice.persistence.entity.OutboxEventEntity;
+import com.portfolio.orderservice.persistence.repository.OutboxEventRepository;
+import tools.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -25,9 +31,17 @@ import java.util.UUID;
 public class OrderService {
 
     private final OrderRepository orderRepository;
+    private final OutboxEventRepository outboxEventRepository;
+    private final ObjectMapper objectMapper;
 
-    public OrderService(OrderRepository orderRepository) {
+    public OrderService(
+            OrderRepository orderRepository,
+            OutboxEventRepository outboxEventRepository,
+            ObjectMapper objectMapper
+    ) {
         this.orderRepository = orderRepository;
+        this.outboxEventRepository = outboxEventRepository;
+        this.objectMapper = objectMapper;
     }
 
     @Transactional
@@ -54,6 +68,43 @@ public class OrderService {
         );
 
         OrderEntity savedEntity = orderRepository.save(entity);
+
+        OrderCreatedEvent event = new OrderCreatedEvent(
+                UUID.randomUUID(),
+                savedEntity.getId(),
+                savedEntity.getCustomerId(),
+                request.items().stream()
+                        .map(item -> new OrderCreatedEvent.Item(
+                                item.productId(),
+                                item.quantity(),
+                                item.unitPrice()
+                        ))
+                        .toList(),
+                savedEntity.getTotalAmount(),
+                Instant.now(),
+                1
+        );
+
+        String payload;
+
+        try {
+            payload = objectMapper.writeValueAsString(event);
+        } catch (Exception exception) {
+            throw new IllegalStateException(
+                    "Failed to serialize OrderCreated event",
+                    exception
+            );
+        }
+
+        outboxEventRepository.save(new OutboxEventEntity(
+                event.eventId(),
+                "ORDER",
+                event.orderId(),
+                "OrderCreated",
+                payload,
+                event.occurredAt()
+        ));
+
         return toDomain(savedEntity);
     }
 
