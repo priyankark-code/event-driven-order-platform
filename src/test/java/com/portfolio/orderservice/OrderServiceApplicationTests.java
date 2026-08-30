@@ -18,8 +18,10 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest(properties = "outbox.publisher.enabled=false")
-@Testcontainers
+@SpringBootTest(properties = {
+		"outbox.publisher.enabled=false",
+		"spring.kafka.listener.auto-startup=false"
+})@Testcontainers
 @DirtiesContext(
 		classMode = DirtiesContext.ClassMode.AFTER_CLASS
 )

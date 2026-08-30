@@ -32,7 +32,8 @@ import tools.jackson.databind.ObjectMapper;
 
 @SpringBootTest(properties = {
         "outbox.publisher.enabled=true",
-        "outbox.publisher.fixed-delay-ms=100"
+        "outbox.publisher.fixed-delay-ms=100",
+        "spring.kafka.listener.auto-startup=false"
 })
 @Testcontainers
 @DirtiesContext(

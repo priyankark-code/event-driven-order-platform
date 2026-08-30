@@ -34,6 +34,9 @@ public class OrderEntity {
     @Column(nullable = false)
     private long version;
 
+    @Column(name = "rejection_reason", length = 500)
+    private String rejectionReason;
+
     @OneToMany(
             mappedBy = "order",
             cascade = CascadeType.ALL,
@@ -94,5 +97,43 @@ public class OrderEntity {
         }
 
         status = OrderStatus.CANCELLED;
+    }
+
+    public void markInventoryReserved() {
+        if (status == OrderStatus.INVENTORY_RESERVED) {
+            return;
+        }
+
+        if (status != OrderStatus.CREATED) {
+            throw new IllegalStateException(
+                    "Order " + id
+                            + " cannot reserve inventory while in status "
+                            + status
+            );
+        }
+
+        status = OrderStatus.INVENTORY_RESERVED;
+        rejectionReason = null;
+    }
+
+    public void rejectInventory(String reason) {
+        if (status == OrderStatus.REJECTED) {
+            return;
+        }
+
+        if (status != OrderStatus.CREATED) {
+            throw new IllegalStateException(
+                    "Order " + id
+                            + " cannot be rejected while in status "
+                            + status
+            );
+        }
+
+        status = OrderStatus.REJECTED;
+        rejectionReason = reason;
+    }
+
+    public String getRejectionReason() {
+        return rejectionReason;
     }
 }

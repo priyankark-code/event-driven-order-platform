@@ -161,7 +161,8 @@ public class OrderService {
                 entity.getStatus(),
                 items,
                 entity.getTotalAmount(),
-                entity.getCreatedAt()
+                entity.getCreatedAt(),
+                entity.getRejectionReason()
         );
     }
 

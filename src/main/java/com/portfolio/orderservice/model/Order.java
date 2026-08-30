@@ -11,6 +11,7 @@ public record Order(
         OrderStatus status,
         List<OrderItem> items,
         BigDecimal totalAmount,
-        Instant createdAt
+        Instant createdAt,
+        String rejectionReason
 ) {
 }
