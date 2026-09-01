@@ -1,6 +1,7 @@
 package com.portfolio.orderservice.service;
 
 import com.portfolio.orderservice.dto.CreateOrderRequest;
+import com.portfolio.orderservice.event.OrderCancelledEvent;
 import com.portfolio.orderservice.exception.OrderNotFoundException;
 import com.portfolio.orderservice.model.Order;
 import com.portfolio.orderservice.model.OrderItem;
@@ -172,6 +173,35 @@ public class OrderService {
                 .orElseThrow(() -> new OrderNotFoundException(id));
 
         entity.cancel();
+
+        OrderCancelledEvent event = new OrderCancelledEvent(
+                UUID.randomUUID(),
+                entity.getId(),
+                Instant.now(),
+                1
+        );
+
+        String payload;
+
+        try {
+            payload = objectMapper.writeValueAsString(event);
+        } catch (Exception exception) {
+            throw new IllegalStateException(
+                    "Failed to serialize OrderCancelled event",
+                    exception
+            );
+        }
+
+        outboxEventRepository.save(
+                new OutboxEventEntity(
+                        event.eventId(),
+                        "ORDER",
+                        event.orderId(),
+                        "OrderCancelled",
+                        payload,
+                        event.occurredAt()
+                )
+        );
 
         return toDomain(entity);
     }

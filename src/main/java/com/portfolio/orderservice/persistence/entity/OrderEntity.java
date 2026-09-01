@@ -92,7 +92,12 @@ public class OrderEntity {
     }
 
     public void cancel() {
-        if (status != OrderStatus.CREATED) {
+        if (status == OrderStatus.CANCELLED) {
+            throw new InvalidOrderStateException(id, status);
+        }
+
+        if (status != OrderStatus.CREATED
+                && status != OrderStatus.INVENTORY_RESERVED) {
             throw new InvalidOrderStateException(id, status);
         }
 

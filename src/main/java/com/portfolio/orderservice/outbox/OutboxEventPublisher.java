@@ -2,6 +2,7 @@ package com.portfolio.orderservice.outbox;
 
 import com.portfolio.orderservice.persistence.entity.OutboxEventEntity;
 import com.portfolio.orderservice.persistence.repository.OutboxEventRepository;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -10,6 +11,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -54,11 +56,20 @@ public class OutboxEventPublisher {
 
     private void publish(OutboxEventEntity event) {
         try {
-            kafkaTemplate.send(
-                    TOPIC,
-                    event.getAggregateId().toString(),
-                    event.getPayload()
-            ).get(10, TimeUnit.SECONDS);
+            ProducerRecord<String, String> record =
+                    new ProducerRecord<>(
+                            TOPIC,
+                            event.getAggregateId().toString(),
+                            event.getPayload()
+                    );
+
+            record.headers().add(
+                    "eventType",
+                    event.getEventType().getBytes(StandardCharsets.UTF_8)
+            );
+
+            kafkaTemplate.send(record)
+                    .get(10, TimeUnit.SECONDS);
 
             stateService.markPublished(
                     event.getId(),

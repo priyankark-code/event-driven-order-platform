@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.portfolio.orderservice.model.OrderStatus;
 
 import java.time.Instant;
 
@@ -47,6 +48,24 @@ public class OrderInventoryResultService {
                 .orElseThrow(() ->
                         new OrderNotFoundException(event.orderId())
                 );
+
+        if (order.getStatus() == OrderStatus.CANCELLED) {
+            processedEventRepository.save(
+                    new ProcessedEventEntity(
+                            event.eventId(),
+                            "Inventory" + event.result(),
+                            Instant.now()
+                    )
+            );
+
+            log.info(
+                    "Ignoring late inventory result {} for cancelled order {}",
+                    event.result(),
+                    event.orderId()
+            );
+
+            return;
+        }
 
         switch (event.result()) {
             case RESERVED ->
